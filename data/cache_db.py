@@ -56,6 +56,7 @@ def register_file(
     max_depth: float,
     file_path: Path,
 ) -> None:
+    initialize_database(db_path)
     size_mb = file_path.stat().st_size / 1_048_576 if file_path.exists() else 0.0
     conn = sqlite3.connect(str(db_path))
     conn.execute("""
@@ -86,6 +87,7 @@ def find_cached_file(
     max_depth: float,
     ttl_seconds: int = 604800,
 ) -> Path | None:
+    initialize_database(db_path)
     conn = sqlite3.connect(str(db_path))
     row = conn.execute("""
         SELECT file_path, downloaded_at FROM cache_registry
@@ -115,6 +117,7 @@ def find_cached_file(
 
 
 def list_all_cached(db_path: Path) -> list[dict]:
+    initialize_database(db_path)
     conn = sqlite3.connect(str(db_path))
     rows = conn.execute("""
         SELECT source, dataset_id, variables, start_date, end_date,
@@ -135,6 +138,7 @@ def list_all_cached(db_path: Path) -> list[dict]:
 
 def delete_cached_dataset(db_path: Path, source: str, dataset_id: str) -> dict:
     """Delete all cached files for a dataset and invalidate registry rows."""
+    initialize_database(db_path)
     conn = sqlite3.connect(str(db_path))
     rows = conn.execute("""
         SELECT file_path, file_size_mb
@@ -168,6 +172,7 @@ def delete_cached_dataset(db_path: Path, source: str, dataset_id: str) -> dict:
 
 def delete_cached_file(db_path: Path, file_path: str) -> dict:
     """Delete one cached file and invalidate its registry row."""
+    initialize_database(db_path)
     conn = sqlite3.connect(str(db_path))
     row = conn.execute("""
         SELECT file_size_mb
