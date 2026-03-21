@@ -1,0 +1,35 @@
+<svg width="640" height="220" viewBox="0 0 640 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="beam" x1="44" y1="110" x2="290" y2="110" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0064E0"/>
+      <stop offset="0.33" stop-color="#0081FB"/>
+      <stop offset="0.66" stop-color="#7B61FF"/>
+      <stop offset="1" stop-color="#B417FF"/>
+    </linearGradient>
+    <linearGradient id="node" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#00B2FF"/>
+      <stop offset="1" stop-color="#0064E0"/>
+    </linearGradient>
+    <linearGradient id="grid" x1="233" y1="59" x2="320" y2="147" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00B2FF"/>
+      <stop offset="0.45" stop-color="#0081FB"/>
+      <stop offset="1" stop-color="#0064E0"/>
+    </linearGradient>
+  </defs>
+
+  <path d="M30 109.5H204" stroke="url(#beam)" stroke-width="12" stroke-linecap="round"/>
+  <path d="M84 164L138 59L192 164H84Z" stroke="#EAF3FF" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M138 111L282 48" stroke="url(#beam)" stroke-width="10" stroke-linecap="round"/>
+  <path d="M138 111L276 177" stroke="url(#beam)" stroke-width="10" stroke-linecap="round"/>
+  <circle cx="282" cy="48" r="14" fill="url(#node)"/>
+  <circle cx="276" cy="177" r="14" fill="#7B61FF"/>
+
+  <rect x="232" y="60" width="26" height="26" rx="6" fill="url(#grid)"/>
+  <rect x="268" y="60" width="26" height="26" rx="6" fill="url(#grid)"/>
+  <rect x="232" y="96" width="26" height="26" rx="6" fill="url(#grid)"/>
+  <rect x="268" y="96" width="26" height="26" rx="6" fill="url(#grid)"/>
+  <rect x="232" y="132" width="26" height="26" rx="6" fill="#7B61FF"/>
+  <rect x="268" y="132" width="26" height="26" rx="6" fill="#5C6CFF"/>
+
+  <text x="320" y="138" fill="#EAF3FF" font-size="78" font-family="Arial, Helvetica, sans-serif" font-weight="700">genesis</text>
+</svg>
