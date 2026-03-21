@@ -16,7 +16,7 @@ if str(ROOT_DIR) not in sys.path:
 from analysis.statistics import describe_series, interannual_stats, monthly_climatology
 from analysis.tsi import compute_tsi_series
 from config import APP_TITLE, BBOX, CACHE_DB_PATH, MAP_CENTER, MAP_ZOOM, MAPBOX_STYLE, SUB_REGIONS, VARIABLES
-from data.cache_db import delete_cached_file, list_all_cached
+from data.cache_db import delete_cached_file, initialize_database, list_all_cached
 from data.cmems_client import list_available_datasets
 from data.loader import get_data
 from ml.anomaly_detector import detect_anomalies
@@ -34,7 +34,13 @@ st.set_page_config(
 )
 
 
+@st.cache_resource
+def _initialize_app_resources() -> None:
+    initialize_database(CACHE_DB_PATH)
+
+
 def main() -> None:
+    _initialize_app_resources()
     _inject_styles()
     session = get_public_session()
     _render_access_notice()
