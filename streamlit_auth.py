@@ -72,7 +72,7 @@ def render_public_homepage() -> None:
                 <div class="genesis-tech-list">
                     <div><strong>Current scope</strong><br/>Spatial analysis, statistics, AI forecast, anomaly detection, data catalog and CSV export.</div>
                     <div><strong>Scientific focus</strong><br/>Environmental marine monitoring, eutrophication analysis and research workflows built on gridded ocean products.</div>
-                    <div><strong>Enterprise extensions</strong><br/>Custom data connectors, larger geographic coverage, organization workflows and dedicated deployment options can be developed later.</div>
+                    <div><strong>Enterprise extensions</strong><br/>If you need additional capabilities, contact Mirkan Emir Sancak for custom enterprise development and tailored product expansion.</div>
                 </div>
             </div>
             """,
@@ -122,6 +122,22 @@ def render_public_homepage() -> None:
                     quantify variability through statistical summaries, run anomaly detection to isolate unusual bloom periods,
                     and generate a forward-looking forecast for short-term monitoring decisions. The same interaction model
                     can later be extended to new seas by connecting additional products behind the same interface.
+                </p>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div class="genesis-compare-card">
+            <div class="genesis-section-heading">
+                <span class="genesis-eyebrow">Enterprise Contact</span>
+                <h2>Need more than the public release?</h2>
+                <p>
+                    For broader geographic coverage, custom institutional workflows, private deployments, additional data
+                    connectors, or product-specific feature development, please contact Mirkan Emir Sancak directly.
+                    Enterprise customization can be developed on request.
                 </p>
             </div>
         </div>

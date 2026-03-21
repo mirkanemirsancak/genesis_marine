@@ -271,7 +271,8 @@ def _render_access_notice() -> None:
         """
         <div class="genesis-access-note">
             Public research workspace is currently free to use. Enterprise-grade extensions, custom deployments and
-            organization-specific development can be provided on request and are separately priced.
+            organization-specific development can be provided on request. For additional development, please contact
+            Mirkan Emir Sancak for enterprise customization.
         </div>
         """,
         unsafe_allow_html=True,
