@@ -16,7 +16,15 @@ Genesis Marine currently provides:
 - Local storage management for downloaded NetCDF files
 - Export of local NetCDF cache files
 
-The current analytical implementation is focused on East Black Sea environmental workflows, but the product structure is being prepared for broader global marine coverage in future iterations.
+The workspace now covers five marine domains out of the box:
+
+- **Black Sea** — high-resolution CMEMS BGC product (~2.5 km)
+- **Mediterranean Sea** — full basin coverage via the MEDSEA BGC product (~4.2 km)
+- **Aegean Sea** — sub-basin view served by the Mediterranean product
+- **Sea of Marmara** — Turkish inland basin served by the Mediterranean product
+- **Global Ocean** — worldwide coverage via the GLOBAL BGC product (~0.25°)
+
+Each sea ships with its own preset sub-regions, default bounding box, map view and CMEMS product routing; the workspace also accepts custom bounding boxes inside the selected basin. Adding a new sea is a single entry in `config.SEAS`.
 
 ## Open Access and Enterprise Development
 
