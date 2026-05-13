@@ -116,30 +116,36 @@ Available modules:
 
 ## Deployment
 
-### Streamlit Community Cloud
+### Free Public Hosting — Streamlit Community Cloud
 
-1. Push this repository to GitHub.
-2. Open [Streamlit Community Cloud](https://streamlit.io/cloud).
-3. Create a new app.
-4. Select this repository.
-5. Set the main file path to:
+Streamlit Community Cloud is free for public scientific projects, integrates
+directly with GitHub (auto-redeploys on push), and is the recommended way to
+publish Genesis Marine.
 
-```text
-streamlit_ui/app.py
-```
+1. Push this repository to GitHub (or keep it here).
+2. Sign in at [https://share.streamlit.io](https://share.streamlit.io) with
+   the GitHub account that owns the repo.
+3. Click **New app** and pick:
+   - Repository: `mirkanemirsancak/genesis_marine`
+   - Branch: `main`
+   - Main file path: `streamlit_ui/app.py`
+4. Open **Advanced settings → Secrets** and paste, using the format from
+   [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example):
 
-6. Add the following secrets or environment variables:
+   ```toml
+   COPERNICUSMARINE_SERVICE_USERNAME = "your_username_here"
+   COPERNICUSMARINE_SERVICE_PASSWORD = "your_password_here"
+   ```
 
-```env
-COPERNICUSMARINE_SERVICE_USERNAME=your_username_here
-COPERNICUSMARINE_SERVICE_PASSWORD=your_password_here
-```
+   Streamlit exposes top-level secrets as environment variables, so the
+   existing `os.getenv(...)` calls in `config.py` pick them up automatically.
+5. Click **Deploy**. You will get a public URL of the form
+   `https://<your-app-name>.streamlit.app`.
 
-7. Deploy.
+Theming and server flags for the cloud build live in
+[`.streamlit/config.toml`](.streamlit/config.toml).
 
-### Local or Server Deployment
-
-For a simple server deployment:
+### Local or Self-Hosted Deployment
 
 ```bash
 source venv/bin/activate
