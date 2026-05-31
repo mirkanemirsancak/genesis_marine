@@ -1,0 +1,305 @@
+:root {
+  --bg: #0d1117;
+  --bg-elevated: #131a24;
+  --bg-panel: #161e2b;
+  --border: #1f2a3a;
+  --border-strong: #2a3a52;
+  --text: #f5f7fb;
+  --text-muted: #9fb1cc;
+  --accent: #59b3ff;
+  --accent-strong: #2f8eff;
+  --good: #46c272;
+  --warn: #ffb449;
+  --bad: #ff5a6d;
+  --radius: 12px;
+  --shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+  --font: "Inter", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 15px;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+a:hover {
+  text-decoration: underline;
+}
+
+.genesis-header {
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, #0e1626 0%, #0a111c 100%);
+}
+.genesis-header__inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.6rem 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+.genesis-brand {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+.genesis-brand__mark {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  background: linear-gradient(140deg, var(--accent) 0%, var(--accent-strong) 100%);
+  font-weight: 700;
+  font-size: 1.15rem;
+  color: #0a111c;
+  box-shadow: var(--shadow);
+}
+.genesis-brand h1 {
+  margin: 0;
+  font-size: 1.35rem;
+  letter-spacing: 0.2px;
+}
+.genesis-brand__tagline {
+  margin: 0.15rem 0 0;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+.genesis-header__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  align-items: flex-end;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.genesis-header__stamp {
+  font-variant-numeric: tabular-nums;
+}
+
+.genesis-main {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+.genesis-intro p {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  color: var(--text-muted);
+  margin: 0 0 1.5rem;
+}
+
+.genesis-controls {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.85rem;
+  margin-bottom: 1rem;
+}
+@media (max-width: 800px) {
+  .genesis-controls {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.genesis-field {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+.genesis-field label,
+.genesis-field__label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.genesis-field select {
+  background: #0a111c;
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--text-muted) 50%),
+    linear-gradient(135deg, var(--text-muted) 50%, transparent 50%);
+  background-position: calc(100% - 16px) 50%, calc(100% - 11px) 50%;
+  background-size: 5px 5px;
+  background-repeat: no-repeat;
+}
+.genesis-field--meta .genesis-field__value {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.genesis-notes {
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  background: rgba(89, 179, 255, 0.07);
+  border: 1px solid rgba(89, 179, 255, 0.25);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 0.9rem;
+  min-height: 1.5rem;
+}
+.genesis-notes:empty {
+  display: none;
+}
+
+.genesis-tabs {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+  overflow-x: auto;
+}
+.genesis-tabs button {
+  background: transparent;
+  border: 0;
+  color: var(--text-muted);
+  font-family: inherit;
+  font-size: 0.92rem;
+  padding: 0.6rem 0.95rem;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+.genesis-tabs button[aria-selected="true"] {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.genesis-tabs button:hover {
+  color: var(--text);
+}
+
+.genesis-panel {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow);
+}
+.genesis-panel[hidden] {
+  display: none;
+}
+.genesis-panel__title {
+  margin: 0 0 0.5rem;
+  font-size: 1.05rem;
+  letter-spacing: 0.1px;
+}
+.genesis-panel__hint {
+  margin: 0 0 0.85rem;
+  color: var(--text-muted);
+  font-size: 0.88rem;
+}
+
+.genesis-chart {
+  width: 100%;
+  height: 420px;
+}
+
+.genesis-map {
+  width: 100%;
+  height: 420px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+}
+
+.genesis-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+.genesis-stat {
+  background: #0a111c;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  padding: 0.7rem 0.85rem;
+}
+.genesis-stat__label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+}
+.genesis-stat__value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 0.2rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.genesis-methods {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.25rem;
+  margin-top: 1rem;
+}
+.genesis-methods h2 {
+  margin-top: 0;
+  font-size: 1.05rem;
+}
+.genesis-methods ul {
+  margin: 0;
+  padding-left: 1.2rem;
+  color: var(--text-muted);
+}
+.genesis-methods li {
+  margin-bottom: 0.45rem;
+}
+.genesis-methods code {
+  background: rgba(89, 179, 255, 0.1);
+  padding: 0.05rem 0.35rem;
+  border-radius: 4px;
+  color: var(--accent);
+  font-size: 0.85em;
+}
+
+.genesis-footer {
+  border-top: 1px solid var(--border);
+  background: #0a111c;
+  color: var(--text-muted);
+  padding: 1.5rem;
+  text-align: center;
+  font-size: 0.85rem;
+}
+.genesis-footer__small {
+  margin-top: 0.35rem;
+  font-size: 0.78rem;
+  opacity: 0.85;
+}
+
+.genesis-empty {
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}

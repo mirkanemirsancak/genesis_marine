@@ -1,0 +1,26 @@
+# Minimal dependency set for the GitHub Actions pipeline that exports
+# data to the docs/data/ folder for GitHub Pages.
+# Excludes Streamlit, Dash, Flask, APScheduler, Prophet etc. — only the
+# pieces required by scripts/export_to_json.py and its imports.
+
+# Data sources
+copernicusmarine==2.0.1
+requests==2.32.3
+
+# Scientific data handling
+xarray==2024.7.0
+netCDF4==1.7.2
+h5py>=3.11.0
+numpy>=1.24.0
+pandas>=2.0.0
+scipy>=1.11.0
+
+# Analysis & forecasting
+statsmodels==0.14.4
+pymannkendall==1.4.3
+scikit-learn>=1.3.0
+
+# Utilities
+python-dotenv==1.0.1
+loguru==0.7.2
+python-dateutil==2.9.0

@@ -39,13 +39,17 @@ analysis/        Statistical and eutrophication analysis utilities
 assets/          Shared design assets and branding
 components/      Dash UI components from the earlier app structure
 data/            Data access, caching, and dataset management
+docs/            GitHub Pages site (HTML/CSS/JS + generated JSON)
 ml/              Forecasting, feature engineering, and anomaly detection
 pages/           Dash pages from the earlier app structure
 scheduler/       Background refresh jobs
+scripts/         Offline pipelines (e.g. export_to_json.py for Pages)
 streamlit_ui/    Current public Streamlit interface
 utils/           Shared helpers
-app.py           Original Dash entry point
-streamlit_ui/app.py  Current Streamlit entry point
+.github/workflows/refresh-data.yml   Pages refresh & deploy pipeline
+config.py                            Multi-sea configuration registry (SEAS)
+app.py                               Original Dash entry point
+streamlit_ui/app.py                  Streamlit workspace entry point
 ```
 
 ## Installation
@@ -116,41 +120,61 @@ Available modules:
 
 ## Deployment
 
-### Free Public Hosting — Streamlit Community Cloud
+There are two complementary deployment surfaces for this project. The
+public **GitHub Pages** site is the citation-ready scientific face; the
+**local Streamlit app** is the full interactive workspace for ad-hoc work
+and custom bounding boxes.
 
-Streamlit Community Cloud is free for public scientific projects, integrates
-directly with GitHub (auto-redeploys on push), and is the recommended way to
-publish Genesis Marine.
+### Free Public Hosting — GitHub Pages + GitHub Actions
 
-1. Push this repository to GitHub (or keep it here).
-2. Sign in at [https://share.streamlit.io](https://share.streamlit.io) with
-   the GitHub account that owns the repo.
-3. Click **New app** and pick:
-   - Repository: `mirkanemirsancak/genesis_marine`
-   - Branch: `main`
-   - Main file path: `streamlit_ui/app.py`
-4. Open **Advanced settings → Secrets** and paste, using the format from
-   [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example):
+The repo ships an end-to-end "all on GitHub" pipeline:
 
-   ```toml
-   COPERNICUSMARINE_SERVICE_USERNAME = "your_username_here"
-   COPERNICUSMARINE_SERVICE_PASSWORD = "your_password_here"
-   ```
+```
+.github/workflows/refresh-data.yml   ← weekly cron + manual dispatch
+        │
+        ├── scripts/export_to_json.py
+        │     fetches CMEMS data via data/loader.py
+        │     computes timeseries / climatology / annual / SARIMA forecast
+        │     writes one JSON per (sea, variable) into docs/data/
+        │
+        └── deploys docs/ to GitHub Pages
 
-   Streamlit exposes top-level secrets as environment variables, so the
-   existing `os.getenv(...)` calls in `config.py` pick them up automatically.
-5. Click **Deploy**. You will get a public URL of the form
-   `https://<your-app-name>.streamlit.app`.
+docs/
+ ├── index.html             ← landing & viewer
+ ├── assets/css/style.css
+ ├── assets/js/app.js       ← Plotly + Leaflet viewer
+ └── data/                  ← refreshed by the Actions job
+```
 
-Theming and server flags for the cloud build live in
-[`.streamlit/config.toml`](.streamlit/config.toml).
+One-time setup:
 
-### Local or Self-Hosted Deployment
+1. Add the Copernicus credentials as repository secrets
+   (**Settings → Secrets and variables → Actions**):
+   - `COPERNICUSMARINE_SERVICE_USERNAME`
+   - `COPERNICUSMARINE_SERVICE_PASSWORD`
+2. Enable Pages: **Settings → Pages → Source = GitHub Actions**.
+3. Run the workflow once from the **Actions** tab
+   (*Refresh Genesis Marine data → Run workflow*). After it succeeds
+   the site is published at
+   `https://<your-github-username>.github.io/genesis_marine/`.
+
+From then on the workflow re-runs every Monday at 04:00 UTC and
+automatically redeploys the page.
+
+### Local Streamlit Workspace
+
+The Streamlit app remains the canonical interactive interface for
+researchers (custom bounding boxes, EMODnet/CMEMS source switching,
+forecast horizons, anomaly tuning):
 
 ```bash
 source venv/bin/activate
 python -m streamlit run streamlit_ui/app.py --server.port 8501 --server.address 0.0.0.0
 ```
+
+Theming and server flags live in
+[`.streamlit/config.toml`](.streamlit/config.toml); credentials go in
+`.env` (locally) — see [`.streamlit/secrets.toml.example`](.streamlit/secrets.toml.example) for the key names.
 
 ## Notes
 
