@@ -4,6 +4,9 @@ from __future__ import annotations
 Unified data loader.
 Single entry point for all data access — checks cache first, fetches if needed.
 Returns normalized xarray.Dataset with standard variable names.
+
+The loader is sea-aware: callers pass `sea_id` (or omit it to use DEFAULT_SEA)
+and the CMEMS product / fallback layer IDs are resolved from `config.SEAS`.
 """
 
 import xarray as xr
@@ -15,11 +18,12 @@ from datetime import date, datetime
 
 from config import (
     BBOX, CACHE_DB_PATH,
-    CMEMS_REANALYSIS_PRODUCT, CMEMS_FORECAST_PRODUCT,
     EMODNET_DATASETS,
     CACHE_TTL_REANALYSIS, CACHE_TTL_FORECAST,
     DEFAULT_MIN_DEPTH, DEFAULT_MAX_DEPTH,
     VARIABLES,
+    DEFAULT_SEA, VARIABLE_LAYER_FAMILY,
+    get_sea,
 )
 from data.cache_db import find_cached_file, register_file
 from data import cmems_client, emodnet_client
@@ -35,40 +39,38 @@ _CMEMS_VAR_MAP = {
 }
 
 
-def _pick_cmems_layer(variable: str, frequency: str = "monthly") -> tuple[str, str]:
+def _pick_cmems_layer(variable: str, frequency: str, sea_id: str) -> tuple[str, str]:
     """
-    Return (dataset_id, source_product) for a variable + frequency combo.
-    Prefers reanalysis for historical data; forecast layer for recent/future.
+    Return (dataset_id, source_product) for a variable + frequency combo
+    inside a given sea. Prefers a live catalogue lookup; falls back to the
+    sea's layer-name pattern if the catalogue query fails.
     """
-    fallback_map = {
-        ("chl", "monthly"): "cmems_mod_blk_bgc-plankton_my_2.5km_P1M-m",
-        ("chl", "daily"): "cmems_mod_blk_bgc-plankton_my_2.5km_P1D-m",
-        ("phyc", "monthly"): "cmems_mod_blk_bgc-plankton_my_2.5km_P1M-m",
-        ("phyc", "daily"): "cmems_mod_blk_bgc-plankton_my_2.5km_P1D-m",
-        ("no3", "monthly"): "cmems_mod_blk_bgc-nut_my_2.5km_P1M-m",
-        ("no3", "daily"): "cmems_mod_blk_bgc-nut_my_2.5km_P1D-m",
-        ("po4", "monthly"): "cmems_mod_blk_bgc-nut_my_2.5km_P1M-m",
-        ("po4", "daily"): "cmems_mod_blk_bgc-nut_my_2.5km_P1D-m",
-        ("o2", "monthly"): "cmems_mod_blk_bgc-bio_my_2.5km_P1M-m",
-        ("o2", "daily"): "cmems_mod_blk_bgc-bio_my_2.5km_P1D-m",
-        ("nppv", "monthly"): "cmems_mod_blk_bgc-bio_my_2.5km_P1M-m",
-        ("nppv", "daily"): "cmems_mod_blk_bgc-bio_my_2.5km_P1D-m",
-    }
-    fallback_layer = fallback_map[(variable, frequency)]
+    sea = get_sea(sea_id)
+    reanalysis_product = sea["reanalysis_product"]
 
     dataset_id = cmems_client.find_dataset_for_variable(
-        product_id=CMEMS_REANALYSIS_PRODUCT,
+        product_id=reanalysis_product,
         variable=_CMEMS_VAR_MAP.get(variable, variable),
         frequency=frequency,
     )
     if dataset_id:
-        return dataset_id, CMEMS_REANALYSIS_PRODUCT
+        return dataset_id, reanalysis_product
 
-    return fallback_layer, CMEMS_REANALYSIS_PRODUCT
+    family = VARIABLE_LAYER_FAMILY.get(variable, "plankton")
+    pattern = sea.get("fallback_layer_pattern", {}).get(family)
+    freq_token = "P1M" if frequency == "monthly" else "P1D"
+    fallback_layer = pattern.format(freq=freq_token) if pattern else reanalysis_product
+    return fallback_layer, reanalysis_product
 
 
-def _choose_cmems_source_product(variable: str, frequency: str, end_date: str) -> tuple[str, str]:
-    """Use forecast product for near-real-time requests, otherwise reanalysis."""
+def _choose_cmems_source_product(
+    variable: str, frequency: str, end_date: str, sea_id: str
+) -> tuple[str, str]:
+    """Use the sea's forecast product for near-real-time requests, otherwise reanalysis."""
+    sea = get_sea(sea_id)
+    forecast_product = sea["forecast_product"]
+    reanalysis_product = sea["reanalysis_product"]
+
     try:
         requested_end = datetime.fromisoformat(end_date).date()
     except ValueError:
@@ -76,7 +78,11 @@ def _choose_cmems_source_product(variable: str, frequency: str, end_date: str) -
 
     target_var = _CMEMS_VAR_MAP.get(variable, variable)
     use_forecast = requested_end >= (date.today() - pd.Timedelta(days=370))
-    products = [CMEMS_FORECAST_PRODUCT, CMEMS_REANALYSIS_PRODUCT] if use_forecast else [CMEMS_REANALYSIS_PRODUCT, CMEMS_FORECAST_PRODUCT]
+    products = (
+        [forecast_product, reanalysis_product]
+        if use_forecast
+        else [reanalysis_product, forecast_product]
+    )
 
     for product_id in products:
         dataset_id = cmems_client.find_dataset_for_variable(
@@ -87,7 +93,7 @@ def _choose_cmems_source_product(variable: str, frequency: str, end_date: str) -
         if dataset_id:
             return dataset_id, product_id
 
-    return _pick_cmems_layer(variable, frequency)
+    return _pick_cmems_layer(variable, frequency, sea_id)
 
 
 def get_data(
@@ -99,25 +105,29 @@ def get_data(
     max_depth: float = DEFAULT_MAX_DEPTH,
     frequency: str = "monthly",
     source: str = "cmems",
+    sea_id: str | None = None,
 ) -> xr.Dataset | None:
     """
     Main data access function. Returns xarray.Dataset or None on failure.
 
     Args:
         variable:   One of: chl, no3, po4, o2, nppv, phyc
-        bbox:       Bounding box dict (defaults to full East Black Sea)
+        bbox:       Bounding box dict (defaults to the sea's full bbox)
         start_date: ISO date string
         end_date:   ISO date string
         min_depth:  Minimum depth in meters
         max_depth:  Maximum depth in meters
         frequency:  "monthly" or "daily"
         source:     "cmems" or "emodnet"
+        sea_id:     Sea identifier from config.SEAS (defaults to DEFAULT_SEA)
 
     Returns:
         Normalized xarray.Dataset with coords: time, depth, latitude, longitude
     """
+    sea_id = sea_id or DEFAULT_SEA
+    sea = get_sea(sea_id)
     if bbox is None:
-        bbox = BBOX
+        bbox = sea["bbox"]
 
     variables = [_CMEMS_VAR_MAP.get(variable, variable)]
     ttl = CACHE_TTL_REANALYSIS
@@ -133,7 +143,9 @@ def get_data(
 
     # Fetch fresh data
     if source == "cmems":
-        dataset_id, product_id = _choose_cmems_source_product(variable, frequency, end_date)
+        dataset_id, product_id = _choose_cmems_source_product(
+            variable, frequency, end_date, sea_id
+        )
         try:
             path = cmems_client.fetch_subset(
                 dataset_id=dataset_id,
@@ -145,7 +157,10 @@ def get_data(
                 maximum_depth=max_depth,
             )
         except Exception as e:
-            logger.error(f"CMEMS fetch failed for {variable} from {product_id} / {dataset_id}: {e}")
+            logger.error(
+                f"CMEMS fetch failed for {variable} from {product_id} / {dataset_id} "
+                f"(sea={sea_id}): {e}"
+            )
             return None
 
     elif source == "emodnet":
@@ -262,12 +277,19 @@ def get_surface_timeseries(
     bbox: dict | None = None,
     start_date: str = "2015-01-01",
     end_date: str = "2024-12-31",
+    sea_id: str | None = None,
 ) -> pd.DataFrame | None:
     """
     Convenience function: return spatial mean time series as a DataFrame.
     Columns: ds (datetime), y (mean value), ymin, ymax, ystd
     """
-    ds = get_data(variable=variable, bbox=bbox, start_date=start_date, end_date=end_date)
+    ds = get_data(
+        variable=variable,
+        bbox=bbox,
+        start_date=start_date,
+        end_date=end_date,
+        sea_id=sea_id,
+    )
     if ds is None:
         return None
 

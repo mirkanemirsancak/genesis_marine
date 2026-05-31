@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Genesis Marine Intelligence — Multi-Sea Eutrophication Workspace</title>
+    <meta
+      name="description"
+      content="Open-access marine eutrophication, forecasting and anomaly screening across the Black Sea, Mediterranean, Aegean, Marmara and the global ocean. Data refreshed weekly from Copernicus Marine."
+    />
+    <link rel="preconnect" href="https://cdn.plot.ly" />
+    <link rel="preconnect" href="https://unpkg.com" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <link rel="stylesheet" href="assets/css/style.css" />
+  </head>
+  <body>
+    <header class="genesis-header">
+      <div class="genesis-header__inner">
+        <div class="genesis-brand">
+          <span class="genesis-brand__mark">GM</span>
+          <div>
+            <h1>Genesis Marine Intelligence</h1>
+            <p class="genesis-brand__tagline">
+              Multi-sea marine eutrophication, climatology and forecasting workspace.
+            </p>
+          </div>
+        </div>
+        <nav class="genesis-header__meta" aria-label="Project links">
+          <a
+            href="https://github.com/mirkanemirsancak/genesis_marine"
+            target="_blank"
+            rel="noopener"
+            >Source on GitHub</a
+          >
+          <span id="generated-at" class="genesis-header__stamp"></span>
+        </nav>
+      </div>
+    </header>
+
+    <main class="genesis-main">
+      <section class="genesis-intro">
+        <p>
+          This is the public, citation-ready face of the Genesis Marine workspace. It
+          ships pre-computed time series, monthly climatology, annual variability,
+          summary statistics and 12-month SARIMA forecasts for the parameters most
+          relevant to marine eutrophication monitoring. Data is refreshed weekly by a
+          GitHub Actions pipeline that pulls from Copernicus Marine
+          (BLKSEA, MEDSEA and global biogeochemistry products).
+        </p>
+      </section>
+
+      <section class="genesis-controls" aria-label="Data selectors">
+        <div class="genesis-field">
+          <label for="sea-select">Sea / Basin</label>
+          <select id="sea-select" aria-describedby="sea-notes"></select>
+        </div>
+        <div class="genesis-field">
+          <label for="variable-select">Parameter</label>
+          <select id="variable-select"></select>
+        </div>
+        <div class="genesis-field genesis-field--meta">
+          <span class="genesis-field__label">Window</span>
+          <span id="window-readout" class="genesis-field__value">—</span>
+        </div>
+        <div class="genesis-field genesis-field--meta">
+          <span class="genesis-field__label">Forecast horizon</span>
+          <span id="forecast-readout" class="genesis-field__value">—</span>
+        </div>
+      </section>
+
+      <section
+        id="sea-notes"
+        class="genesis-notes"
+        aria-live="polite"
+      ></section>
+
+      <nav class="genesis-tabs" role="tablist" aria-label="Analysis views">
+        <button type="button" role="tab" data-tab="map" aria-selected="true">Map</button>
+        <button type="button" role="tab" data-tab="timeseries">Time Series</button>
+        <button type="button" role="tab" data-tab="climatology">Climatology</button>
+        <button type="button" role="tab" data-tab="annual">Annual</button>
+        <button type="button" role="tab" data-tab="forecast">Forecast</button>
+        <button type="button" role="tab" data-tab="stats">Statistics</button>
+      </nav>
+
+      <section
+        class="genesis-panel"
+        id="tab-map"
+        role="tabpanel"
+        aria-label="Map view"
+      >
+        <h2 class="genesis-panel__title">Spatial Coverage</h2>
+        <p class="genesis-panel__hint">
+          The bounding box of the selected sea is highlighted. Pre-computed
+          analytics below summarise the full basin; a future revision will ship
+          gridded snapshots for the live map.
+        </p>
+        <div id="map" class="genesis-map" aria-label="Sea bounding box map"></div>
+      </section>
+
+      <section
+        class="genesis-panel"
+        id="tab-timeseries"
+        role="tabpanel"
+        aria-label="Time series"
+        hidden
+      >
+        <h2 class="genesis-panel__title">Monthly Time Series</h2>
+        <div id="chart-timeseries" class="genesis-chart"></div>
+      </section>
+
+      <section
+        class="genesis-panel"
+        id="tab-climatology"
+        role="tabpanel"
+        aria-label="Monthly climatology"
+        hidden
+      >
+        <h2 class="genesis-panel__title">Monthly Climatology</h2>
+        <div id="chart-climatology" class="genesis-chart"></div>
+      </section>
+
+      <section
+        class="genesis-panel"
+        id="tab-annual"
+        role="tabpanel"
+        aria-label="Annual variability"
+        hidden
+      >
+        <h2 class="genesis-panel__title">Annual Means</h2>
+        <div id="chart-annual" class="genesis-chart"></div>
+      </section>
+
+      <section
+        class="genesis-panel"
+        id="tab-forecast"
+        role="tabpanel"
+        aria-label="Forecast"
+        hidden
+      >
+        <h2 class="genesis-panel__title">12-Month SARIMA Forecast</h2>
+        <p class="genesis-panel__hint" id="forecast-meta"></p>
+        <div id="chart-forecast" class="genesis-chart"></div>
+      </section>
+
+      <section
+        class="genesis-panel"
+        id="tab-stats"
+        role="tabpanel"
+        aria-label="Descriptive statistics"
+        hidden
+      >
+        <h2 class="genesis-panel__title">Descriptive Statistics</h2>
+        <div id="stats-grid" class="genesis-stats-grid"></div>
+      </section>
+
+      <section class="genesis-methods">
+        <h2>Methodology</h2>
+        <ul>
+          <li>
+            <strong>Data source:</strong> Copernicus Marine biogeochemistry products
+            — BLKSEA (~2.5 km), MEDSEA (~4.2 km) and GLOBAL (~0.25°). The basin
+            covered by each sea is configured in
+            <code>config.SEAS</code>.
+          </li>
+          <li>
+            <strong>Time series:</strong> spatial mean over each sea's bounding
+            box, depth-averaged 0–10 m, monthly resolution.
+          </li>
+          <li>
+            <strong>Climatology:</strong> calendar-month mean and standard
+            deviation across the published window.
+          </li>
+          <li>
+            <strong>Forecast:</strong> SARIMA(1,1,1)(1,1,1,12) on the spatial-mean
+            series. Prophet is intentionally skipped on CI to keep the run
+            lightweight and reproducible.
+          </li>
+          <li>
+            <strong>Refresh cadence:</strong> weekly via GitHub Actions
+            (<code>refresh-data.yml</code>). Deployment to GitHub Pages happens
+            automatically after the refresh job succeeds.
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="genesis-footer">
+      <p>
+        Genesis Marine Intelligence · open access ·
+        <a
+          href="https://github.com/mirkanemirsancak/genesis_marine"
+          target="_blank"
+          rel="noopener"
+          >GitHub repository</a
+        >
+        · maintained by Mirkan Emir Sancak.
+      </p>
+      <p class="genesis-footer__small">
+        Data: Copernicus Marine Service (E.U. Copernicus Marine Service Information).
+        Charts: Plotly.js. Map: Leaflet + OpenStreetMap.
+      </p>
+    </footer>
+
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+      defer
+    ></script>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+    <script src="assets/js/app.js" defer></script>
+  </body>
+</html>

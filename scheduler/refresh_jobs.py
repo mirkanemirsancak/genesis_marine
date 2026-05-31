@@ -7,37 +7,44 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from loguru import logger
 from datetime import datetime, timedelta
 
-from config import BBOX, CMEMS_FORECAST_LAYERS, CACHE_DB_PATH, CACHE_TTL_FORECAST
+from config import CACHE_DB_PATH, CACHE_TTL_FORECAST, SEAS
 from data.cache_db import find_cached_file
 
 
 def refresh_forecast_data():
-    """Re-download the last 30 days of the CMEMS forecast product."""
-    logger.info("Scheduler: refreshing forecast data")
+    """
+    Re-download the last 30 days of the CMEMS forecast product for every
+    configured sea that exposes a `plankton_daily` forecast layer.
+    """
+    logger.info("Scheduler: refreshing forecast data for all configured seas")
     from data import cmems_client
     from data.cache_db import register_file
 
     end   = datetime.utcnow().strftime("%Y-%m-%d")
     start = (datetime.utcnow() - timedelta(days=30)).strftime("%Y-%m-%d")
-    dataset_id = CMEMS_FORECAST_LAYERS["plankton_daily"]
 
-    try:
-        path = cmems_client.fetch_subset(
-            dataset_id=dataset_id,
-            variables=["chl"],
-            bbox=BBOX,
-            start_datetime=start,
-            end_datetime=end,
-            minimum_depth=0.0,
-            maximum_depth=10.0,
-        )
-        register_file(
-            CACHE_DB_PATH, "cmems", dataset_id, ["chl"],
-            BBOX, start, end, 0.0, 10.0, path,
-        )
-        logger.success(f"Scheduler: forecast refresh complete → {path.name}")
-    except Exception as e:
-        logger.error(f"Scheduler: forecast refresh failed: {e}")
+    for sea_id, sea_cfg in SEAS.items():
+        dataset_id = sea_cfg.get("forecast_layers", {}).get("plankton_daily")
+        if not dataset_id:
+            continue
+        bbox = sea_cfg["bbox"]
+        try:
+            path = cmems_client.fetch_subset(
+                dataset_id=dataset_id,
+                variables=["chl"],
+                bbox=bbox,
+                start_datetime=start,
+                end_datetime=end,
+                minimum_depth=0.0,
+                maximum_depth=10.0,
+            )
+            register_file(
+                CACHE_DB_PATH, "cmems", dataset_id, ["chl"],
+                bbox, start, end, 0.0, 10.0, path,
+            )
+            logger.success(f"Scheduler: {sea_id} forecast refresh complete → {path.name}")
+        except Exception as e:
+            logger.error(f"Scheduler: {sea_id} forecast refresh failed: {e}")
 
 
 def refresh_reanalysis_check():

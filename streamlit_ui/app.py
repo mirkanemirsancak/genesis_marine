@@ -15,7 +15,15 @@ if str(ROOT_DIR) not in sys.path:
 
 from analysis.statistics import describe_series, interannual_stats, monthly_climatology
 from analysis.tsi import compute_tsi_series
-from config import APP_TITLE, BBOX, CACHE_DB_PATH, MAP_CENTER, MAP_ZOOM, MAPBOX_STYLE, SUB_REGIONS, VARIABLES
+from config import (
+    APP_TITLE,
+    CACHE_DB_PATH,
+    DEFAULT_SEA,
+    MAPBOX_STYLE,
+    SEAS,
+    VARIABLES,
+    get_sea,
+)
 from data.cache_db import delete_cached_file, initialize_database, list_all_cached
 from data.cmems_client import list_available_datasets
 from data.loader import get_data
@@ -68,8 +76,8 @@ def main() -> None:
             _render_module({"config": {"module": module}}, session)
             return
         st.markdown(
-            '<div class="genesis-note">Choose filters, select a workspace module, and run analysis. '
-            'This workspace is already structured for future expansion beyond the Black Sea via preset regions and custom bounding boxes.</div>',
+            '<div class="genesis-note">Choose a sea, configure filters, select a workspace module, and run analysis. '
+            'The workspace now covers the Black Sea, Mediterranean, Aegean, Marmara, and the global ocean.</div>',
             unsafe_allow_html=True,
         )
         _render_quickstart()
@@ -86,6 +94,20 @@ def _render_sidebar_filters(session: dict) -> dict:
     allowed_variables = features["allowed_variables"]
 
     st.sidebar.markdown("### Data Filters")
+
+    sea_ids = list(SEAS.keys())
+    default_index = sea_ids.index(DEFAULT_SEA) if DEFAULT_SEA in sea_ids else 0
+    sea_id = st.sidebar.selectbox(
+        "Sea / Basin",
+        options=sea_ids,
+        index=default_index,
+        format_func=lambda sid: SEAS[sid]["label"],
+        help="Select the marine basin. Sub-regions, default bounding box, map view and CMEMS products are all routed through this choice.",
+    )
+    sea_cfg = get_sea(sea_id)
+    if sea_cfg.get("notes"):
+        st.sidebar.caption(sea_cfg["notes"])
+
     variable = st.sidebar.selectbox(
         "Parameter",
         options=allowed_variables,
@@ -105,24 +127,34 @@ def _render_sidebar_filters(session: dict) -> dict:
         help="Controls how grid cells are aggregated into the analysis time series.",
     )
 
+    sea_sub_regions = sea_cfg["sub_regions"]
+    sea_bbox = sea_cfg["bbox"]
+
     coverage_mode = st.sidebar.radio(
         "Coverage Mode",
         options=["Preset Region", "Custom Bounding Box"],
-        help="Preset regions are easiest today. Custom bounding boxes are the foundation for future global marine coverage.",
+        help="Preset regions follow the selected sea. Custom bounding boxes accept any coordinates inside the same basin.",
     )
     if coverage_mode == "Preset Region":
-        region_name = st.sidebar.selectbox("Region", options=list(SUB_REGIONS.keys()))
-        bbox = region_to_bbox(region_name)
+        region_name = st.sidebar.selectbox(
+            "Region",
+            options=list(sea_sub_regions.keys()),
+            key=f"region_{sea_id}",
+        )
+        bbox = region_to_bbox(region_name, sea_id=sea_id)
     else:
         region_name = "Custom Bounding Box"
-        st.sidebar.caption("Current backend products are still Black Sea-centric, but this input model is ready for global expansion.")
+        st.sidebar.caption(
+            f"Bounding box is interpreted against the **{sea_cfg['label']}** CMEMS product. "
+            "Stay within the basin for best coverage."
+        )
         min_lon, max_lon = st.sidebar.columns(2)
         min_lat, max_lat = st.sidebar.columns(2)
         bbox = {
-            "minimum_longitude": min_lon.number_input("Min Lon", value=float(BBOX["minimum_longitude"]), step=0.5),
-            "maximum_longitude": max_lon.number_input("Max Lon", value=float(BBOX["maximum_longitude"]), step=0.5),
-            "minimum_latitude": min_lat.number_input("Min Lat", value=float(BBOX["minimum_latitude"]), step=0.5),
-            "maximum_latitude": max_lat.number_input("Max Lat", value=float(BBOX["maximum_latitude"]), step=0.5),
+            "minimum_longitude": min_lon.number_input("Min Lon", value=float(sea_bbox["minimum_longitude"]), step=0.5, key=f"min_lon_{sea_id}"),
+            "maximum_longitude": max_lon.number_input("Max Lon", value=float(sea_bbox["maximum_longitude"]), step=0.5, key=f"max_lon_{sea_id}"),
+            "minimum_latitude": min_lat.number_input("Min Lat", value=float(sea_bbox["minimum_latitude"]), step=0.5, key=f"min_lat_{sea_id}"),
+            "maximum_latitude": max_lat.number_input("Max Lat", value=float(sea_bbox["maximum_latitude"]), step=0.5, key=f"max_lat_{sea_id}"),
         }
 
     date_range = st.sidebar.date_input(
@@ -170,6 +202,8 @@ def _render_sidebar_filters(session: dict) -> dict:
     )
 
     return {
+        "sea_id": sea_id,
+        "sea_label": sea_cfg["label"],
         "variable": variable,
         "source": source,
         "frequency": frequency,
@@ -201,6 +235,7 @@ def _run_analysis(config: dict) -> None:
             max_depth=float(config["depth_range"][1]),
             frequency=config["frequency"],
             source=config["source"],
+            sea_id=config.get("sea_id"),
         )
 
     if ds is None:
@@ -313,10 +348,20 @@ def _render_quickstart() -> None:
 
 
 def _render_spatial_module(result: dict) -> None:
+    sea_id = result["config"].get("sea_id", DEFAULT_SEA)
+    sea_cfg = get_sea(sea_id)
     left, right = st.columns([1.55, 1.0], gap="large")
     with left:
         st.markdown('<div class="genesis-section-title">Spatial View</div>', unsafe_allow_html=True)
-        st.plotly_chart(_build_map(result["spatial_view"], result["variable"]), use_container_width=True)
+        st.plotly_chart(
+            _build_map(
+                result["spatial_view"],
+                result["variable"],
+                map_center=sea_cfg["map_center"],
+                map_zoom=sea_cfg["map_zoom"],
+            ),
+            use_container_width=True,
+        )
     with right:
         st.markdown('<div class="genesis-section-title">Dataset Overview</div>', unsafe_allow_html=True)
         st.markdown('<div class="genesis-panel">', unsafe_allow_html=True)
@@ -561,10 +606,12 @@ def _render_vision_foundation() -> None:
 
 
 def _render_success_banner(config: dict) -> None:
+    sea_label = config.get("sea_label", "")
+    sea_prefix = f"<strong>{sea_label}</strong> · " if sea_label else ""
     st.markdown(
         f"""
         <div class="genesis-note genesis-success">
-            Analysis completed for <strong>{VARIABLES[config['variable']]['label']}</strong> ·
+            Analysis completed for {sea_prefix}<strong>{VARIABLES[config['variable']]['label']}</strong> ·
             <strong>{config['region_name']}</strong> ·
             <strong>{config['frequency']}</strong> resolution.
         </div>
@@ -593,10 +640,16 @@ def _render_summary_metrics(surface, variable: str) -> None:
     _metric_card(cols[3], "Min", f"{float(series.min()):.3f}", "lower bound")
 
 
-def _build_map(da, variable: str):
+def _build_map(da, variable: str, map_center: dict | None = None, map_zoom: int | None = None):
     df = da.to_dataframe(name="value").reset_index().dropna(subset=["value"])
     if "latitude" not in df or "longitude" not in df:
         return go.Figure().update_layout(title="Latitude/longitude coordinates not found")
+
+    default_sea = get_sea(DEFAULT_SEA)
+    if map_center is None:
+        map_center = default_sea["map_center"]
+    if map_zoom is None:
+        map_zoom = default_sea["map_zoom"]
 
     meta = VARIABLES[variable]
     fig = px.scatter_map(
@@ -607,8 +660,8 @@ def _build_map(da, variable: str):
         color_continuous_scale=meta["colorscale"],
         labels={"value": meta["label"]},
         map_style=MAPBOX_STYLE,
-        center=MAP_CENTER,
-        zoom=MAP_ZOOM,
+        center=map_center,
+        zoom=map_zoom,
         opacity=0.78,
     )
     fig.update_traces(marker_size=7)
