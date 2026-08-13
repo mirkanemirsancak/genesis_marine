@@ -6,7 +6,11 @@
  * (sea, variable) combination shipped with the repository.
  */
 
-const MANIFEST_URL = "data/index.json";
+const DATA_ROOT_URL = new URL("data/", document.baseURI);
+
+function dataUrl(path) {
+  return new URL(path, DATA_ROOT_URL).toString();
+}
 
 const state = {
   manifest: null,
@@ -37,13 +41,13 @@ document.addEventListener("DOMContentLoaded", () => {
     console.error(err);
     showFatal(
       "Could not load the data manifest. The GitHub Actions pipeline " +
-        "might not have generated docs/data/index.json yet."
+        "might not have generated data/index.json yet."
     );
   });
 });
 
 async function loadManifest() {
-  const resp = await fetch(MANIFEST_URL, { cache: "no-cache" });
+  const resp = await fetch(dataUrl("index.json"), { cache: "no-cache" });
   if (!resp.ok) {
     throw new Error(`Manifest request failed (${resp.status})`);
   }
@@ -179,12 +183,12 @@ async function refreshFromSelectors() {
   setLoadingState();
 
   try {
-    const resp = await fetch(`data/${seaId}/${varId}.json`, { cache: "no-cache" });
+    const resp = await fetch(dataUrl(`${seaId}/${varId}.json`), { cache: "no-cache" });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     state.payload = await resp.json();
     renderAll();
   } catch (err) {
-    console.warn(`Failed to load data/${seaId}/${varId}.json:`, err);
+    console.warn(`Failed to load ${dataUrl(`${seaId}/${varId}.json`)}:`, err);
     showCombinationMissing();
   }
 }
